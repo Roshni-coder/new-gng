@@ -9,12 +9,13 @@ import Review from '../model/review.js';
 import ExcelJS from 'exceljs';
 // Adjust path to your Order model
 import PayoutModel from "../model/payout.js"; // Adjust path to your Payout model
+import { Coupon, Banner, Campaign, FlashSale, AffiliateSettings } from '../model/marketingModel.js';
 
 // ... (Authentication functions remain the same) ...
 
 export const registerAdmin = async (req, res) => {
   // ... existing code ...
-    try {
+  try {
     const { name, email, password } = req.body;
 
     const existingAdmin = await Admin.findOne({ email });
@@ -45,7 +46,7 @@ export const registerAdmin = async (req, res) => {
 };
 
 export const loginAdmin = async (req, res) => {
-   try {
+  try {
     const { email, password } = req.body;
 
     const admin = await Admin.findOne({ email });
@@ -288,12 +289,12 @@ export const getAdminProducts = async (req, res) => {
     if (type === 'pending') {
       query.approved = false;
     } else if (type === 'featured') {
-      query.isFeatured = true; 
+      query.isFeatured = true;
     } else if (type === 'out-of-stock') {
       query.stock = { $lte: 0 };
     }
     const products = await addproductmodel.find(query)
-      .populate('categoryname') 
+      .populate('categoryname')
       .populate('sellerId', 'name email')
       .sort({ createdAt: -1 });
     res.json({ success: true, products });
@@ -304,34 +305,38 @@ export const getAdminProducts = async (req, res) => {
 };
 
 export const toggleFeatured = async (req, res) => {
-    try {
-        const product = await addproductmodel.findById(req.params.id);
-        if (product) {
-            product.isFeatured = !product.isFeatured;
-            await product.save();
-            res.json({ success: true, message: "Featured status updated" });
-        } else {
-            res.status(404).json({ success: false, message: "Product not found" });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
+  try {
+    const product = await addproductmodel.findById(req.params.id);
+    if (product) {
+      product.isFeatured = !product.isFeatured;
+      await product.save();
+      res.json({ success: true, message: "Featured status updated" });
+    } else {
+      res.status(404).json({ success: false, message: "Product not found" });
     }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 }
 
 export const getAllReviews = async (req, res) => {
   try {
-    const { page = 1, limit = 20, search } = req.query;
+    const { page = 1, limit = 20, search, status } = req.query;
     let query = {};
-    if (search) {
-      query = {
-        $or: [
-          { userName: { $regex: search, $options: "i" } },
-          { comment: { $regex: search, $options: "i" } },
-          { title: { $regex: search, $options: "i" } }
-        ]
-      };
+
+    if (status && status !== 'All') {
+      query.status = status;
     }
+
+    if (search) {
+      query.$or = [
+        { userName: { $regex: search, $options: "i" } },
+        { comment: { $regex: search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } }
+      ];
+    }
+
     const reviews = await Review.find(query)
       .populate({
         path: "productId",
@@ -344,16 +349,23 @@ export const getAllReviews = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
+
     const totalReviews = await Review.countDocuments(query);
+
+    // Stats for the "Analysis" tab
+    const pendingCount = await Review.countDocuments({ status: "Pending" });
+    const reportedCount = await Review.countDocuments({ status: "Reported" });
+
     const allReviews = await Review.find({});
     const avgRating = allReviews.length > 0
       ? (allReviews.reduce((acc, r) => acc + r.rating, 0) / allReviews.length).toFixed(1)
       : 0;
+
     res.status(200).json({
       success: true,
       data: {
         reviews,
-        stats: { totalReviews, avgRating },
+        stats: { totalReviews, avgRating, pendingCount, reportedCount },
         pagination: { currentPage: Number(page), totalPages: Math.ceil(totalReviews / limit) }
       }
     });
@@ -363,108 +375,128 @@ export const getAllReviews = async (req, res) => {
   }
 };
 
+export const updateReviewStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const review = await Review.findByIdAndUpdate(id, { status }, { new: true });
+    res.json({ success: true, message: "Review status updated", review });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 export const deleteReview = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const deletedReview = await Review.findByIdAndDelete(id);
-        if (!deletedReview) {
-            return res.status(404).json({ success: false, message: "Review not found" });
-        }
-        res.status(200).json({ success: true, message: "Review deleted successfully" });
-    } catch (error) {
-        console.error("Delete Review Error:", error);
-        res.status(500).json({ success: false, message: "Server Error" });
+  try {
+    const { id } = req.params;
+    const deletedReview = await Review.findByIdAndDelete(id);
+    if (!deletedReview) {
+      return res.status(404).json({ success: false, message: "Review not found" });
     }
+    res.status(200).json({ success: true, message: "Review deleted successfully" });
+  } catch (error) {
+    console.error("Delete Review Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
 };
 
 // --- FIX IS HERE IN getAllSellers ---
 export const getAllSellers = async (req, res) => {
-    try {
-        const { search } = req.query;
+  try {
+    const { search } = req.query;
 
-        // 1. Construct Search Query
-        const query = {};
-        if (search) {
-            query.$or = [
-                { name: { $regex: search, $options: "i" } },      
-                { email: { $regex: search, $options: "i" } },     
-                { nickName: { $regex: search, $options: "i" } }   
-            ];
+    // 1. Construct Search Query
+    const query = {};
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { nickName: { $regex: search, $options: "i" } }
+      ];
 
-            // FIX: Only search 'phone' if the input is a number
-            // Regex on Number type throws CastError in Mongoose
-            if (!isNaN(search)) {
-                 // Note: This matches strictly. E.g. search "98" matches phone 98 exactly. 
-                 // It will NOT match 981234. To enable that, you MUST change Schema to String.
-                 query.$or.push({ phone: Number(search) });
-            }
-        }
-
-        // 2. Fetch filtered sellers
-        const sellers = await sellermodel.find(query).select("-password").sort({ createdAt: -1 });
-        
-        // 3. Calculate stats
-        const sellersWithStats = await Promise.all(sellers.map(async (seller) => {
-            const products = await addproductmodel.countDocuments({ sellerId: seller._id });
-            const salesData = await orderModel.aggregate([
-                { $unwind: "$items" },
-                { $match: { "items.sellerId": seller._id } },
-                { $group: { _id: null, total: { $sum: "$items.price" }, count: { $sum: 1 } } }
-            ]);
-
-            return {
-                ...seller.toObject(),
-                totalProducts: products,
-                totalSales: salesData[0]?.total || 0,
-                totalOrders: salesData[0]?.count || 0
-            };
-        }));
-
-        res.json({ success: true, sellers: sellersWithStats });
-    } catch (error) {
-        console.log(error);
-        res.json({ success: false, message: error.message });
+      // FIX: Only search 'phone' if the input is a number
+      // Regex on Number type throws CastError in Mongoose
+      if (!isNaN(search)) {
+        // Note: This matches strictly. E.g. search "98" matches phone 98 exactly. 
+        // It will NOT match 981234. To enable that, you MUST change Schema to String.
+        query.$or.push({ phone: Number(search) });
+      }
     }
+
+    // 2. Fetch filtered sellers
+    const sellers = await sellermodel.find(query).select("-password").sort({ createdAt: -1 });
+
+    // 3. Calculate stats
+    const sellersWithStats = await Promise.all(sellers.map(async (seller) => {
+      const products = await addproductmodel.countDocuments({ sellerId: seller._id });
+      const salesData = await orderModel.aggregate([
+        { $unwind: "$items" },
+        { $match: { "items.sellerId": seller._id } },
+        { $group: { _id: null, total: { $sum: "$items.price" }, count: { $sum: 1 } } }
+      ]);
+
+      return {
+        ...seller.toObject(),
+        totalProducts: products,
+        totalSales: salesData[0]?.total || 0,
+        totalOrders: salesData[0]?.count || 0
+      };
+    }));
+
+    res.json({ success: true, sellers: sellersWithStats });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
 };
 
 export const toggleSellerApproval = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const seller = await sellermodel.findById(id);
-        if (!seller) return res.json({ success: false, message: "Seller not found" });
+  try {
+    const { id } = req.params;
+    const seller = await sellermodel.findById(id);
+    if (!seller) return res.json({ success: false, message: "Seller not found" });
 
-        seller.approved = !seller.approved;
-        await seller.save();
-
-        res.json({ success: true, message: "Seller status updated", seller });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
+    // Toggle logic: If Active -> Suspended. If Pending/Suspended -> Active.
+    if (seller.status === 'Active') {
+      seller.status = 'Suspended';
+      seller.approved = false;
+    } else {
+      seller.status = 'Active';
+      seller.approved = true;
     }
+
+    await seller.save();
+
+    res.json({ success: true, message: `Seller ${seller.status}`, seller });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 };
 
 export const updateSellerCommission = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { commissionRate } = req.body;
-        const seller = await sellermodel.findByIdAndUpdate(
-            id, 
-            { commissionRate: commissionRate }, 
-            { new: true }
-        );
-        res.json({ success: true, message: "Commission updated", seller });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
+  try {
+    const { id } = req.params;
+    const { commissionRate } = req.body;
+    const seller = await sellermodel.findByIdAndUpdate(
+      id,
+      { commissionRate: commissionRate },
+      { new: true }
+    );
+    res.json({ success: true, message: "Commission updated", seller });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 };
 
 export const getSellerProducts = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const products = await addproductmodel.find({ sellerId: id });
-        res.json({ success: true, products });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
+  try {
+    const { id } = req.params;
+    const products = await addproductmodel.find({ sellerId: id });
+    res.json({ success: true, products });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 };
 
 
@@ -515,7 +547,7 @@ export const getVendorPayouts = async (req, res) => {
     // Get pending payouts specifically
     const pending = await PayoutModel.find({ status: "Pending" })
       .populate("sellerId", "name email bankDetails");
-    
+
     // Get history
     const history = await PayoutModel.find({ status: { $ne: "Pending" } })
       .populate("sellerId", "name")
@@ -532,7 +564,7 @@ export const processPayout = async (req, res) => {
   try {
     const { payoutId, status, transactionId } = req.body; // status: 'Completed' or 'Rejected'
     const payout = await PayoutModel.findByIdAndUpdate(
-      payoutId, 
+      payoutId,
       { status, transactionId, processedAt: new Date() },
       { new: true }
     );
@@ -568,7 +600,7 @@ export const getCommissionReport = async (req, res) => {
     const commissionRate = 0.10; // 10% example
 
     const orders = await orderModel.find({ status: { $in: ["Delivered", "Completed"] } });
-    
+
     let totalGMV = 0;
     let totalCommission = 0;
 
@@ -586,8 +618,8 @@ export const getCommissionReport = async (req, res) => {
 // 5. Refund Management
 export const getRefunds = async (req, res) => {
   try {
-    const refunds = await orderModel.find({ 
-      status: { $in: ["Cancelled", "Returned", "Refunded"] } 
+    const refunds = await orderModel.find({
+      status: { $in: ["Cancelled", "Returned", "Refunded"] }
     }).sort({ updatedAt: -1 });
 
     res.json({ success: true, refunds });
@@ -624,10 +656,10 @@ export const getFinancialStats = async (req, res) => {
 export const getInventoryData = async (req, res) => {
   try {
     const products = await addproductmodel.find({}).select("title stock price category");
-    
+
     // Logic for Low Stock (e.g., less than 10)
     const lowStockItems = products.filter(p => p.stock < 10);
-    
+
     // Calculate total inventory value
     const totalValue = products.reduce((acc, item) => acc + (item.price * item.stock), 0);
 
@@ -657,6 +689,7 @@ export const updateStock = async (req, res) => {
 
 // --- MARKETING CONTROLLERS ---
 
+
 export const createCoupon = async (req, res) => {
   try {
     const { code, value, expiryDate, discountType } = req.body;
@@ -668,11 +701,58 @@ export const createCoupon = async (req, res) => {
   }
 };
 
+export const createCampaign = async (req, res) => {
+  try {
+    const campaign = new Campaign(req.body);
+    await campaign.save();
+    res.json({ success: true, message: "Campaign created", campaign });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+export const createFlashSale = async (req, res) => {
+  try {
+    const sale = new FlashSale(req.body);
+    await sale.save();
+    res.json({ success: true, message: "Flash Sale Created", sale });
+  } catch (e) { res.status(500).json({ success: false, map: e.message }); }
+};
+
+export const createBanner = async (req, res) => {
+  try {
+    const banner = new Banner(req.body);
+    await banner.save();
+    res.json({ success: true, message: "Banner Created", banner });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+};
+
+export const deleteBanner = async (req, res) => {
+  try {
+    await Banner.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: "Banner Deleted" });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+};
+
+export const updateAffiliateSettings = async (req, res) => {
+  try {
+    let settings = await AffiliateSettings.findOne();
+    if (!settings) settings = new AffiliateSettings();
+    Object.assign(settings, req.body);
+    await settings.save();
+    res.json({ success: true, message: "Affiliate Settings Updated", settings });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+};
+
 export const getMarketingData = async (req, res) => {
   try {
     const coupons = await Coupon.find({});
     const banners = await Banner.find({});
-    res.json({ success: true, coupons, banners });
+    const campaigns = await Campaign.find({});
+    const flashSales = await FlashSale.find({});
+    const affiliate = await AffiliateSettings.findOne() || {};
+    res.json({ success: true, coupons, banners, campaigns, flashSales, affiliate });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -719,9 +799,9 @@ export const exportSalesReport = async (req, res) => {
     // Style Header Row
     worksheet.getRow(1).font = { bold: true };
     worksheet.getRow(1).fill = {
-        type: 'pattern',
-        pattern:'solid',
-        fgColor:{argb:'FFE0E0E0'}
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
     };
 
     // Fetch Data
@@ -761,5 +841,96 @@ export const exportSalesReport = async (req, res) => {
   } catch (error) {
     console.error("Export Error:", error);
     res.status(500).json({ success: false, message: "Could not generate report" });
+  }
+};
+
+export const getReviewAnalytics = async (req, res) => {
+  try {
+    const { type } = req.query;
+
+    // 1. Product Ratings (Grouped by Product)
+    if (type === 'products') {
+      const stats = await Review.aggregate([
+        {
+          $lookup: {
+            from: "products",
+            localField: "productId",
+            foreignField: "_id",
+            as: "product"
+          }
+        },
+        { $unwind: "$product" },
+        {
+          $group: {
+            _id: "$product._id",
+            title: { $first: "$product.title" },
+            image: { $first: { $arrayElemAt: ["$product.images.url", 0] } },
+            sellerId: { $first: "$product.sellerId" },
+            avgRating: { $avg: "$rating" },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { avgRating: -1, count: -1 } }
+      ]);
+      return res.json({ success: true, data: stats });
+    }
+
+    // 2. Vendor Ratings (Grouped by Seller)
+    if (type === 'vendors') {
+      const stats = await Review.aggregate([
+        {
+          $lookup: {
+            from: "products",
+            localField: "productId",
+            foreignField: "_id",
+            as: "product"
+          }
+        },
+        { $unwind: "$product" },
+        {
+          $lookup: {
+            from: "sellers",
+            localField: "product.sellerId",
+            foreignField: "_id",
+            as: "seller"
+          }
+        },
+        { $unwind: "$seller" },
+        {
+          $group: {
+            _id: "$seller._id",
+            name: { $first: "$seller.name" },
+            email: { $first: "$seller.email" },
+            avgRating: { $avg: "$rating" },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { avgRating: -1 } }
+      ]);
+      return res.json({ success: true, data: stats });
+    }
+
+    // 3. General Analytics (Default)
+    const totalReviews = await Review.countDocuments();
+    const avgRatingRes = await Review.aggregate([{ $group: { _id: null, avg: { $avg: '$rating' } } }]);
+
+    // Rating Distribution
+    const distribution = await Review.aggregate([
+      { $group: { _id: "$rating", count: { $sum: 1 } } },
+      { $sort: { "_id": -1 } }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        totalReviews,
+        avgRating: avgRatingRes[0]?.avg?.toFixed(1) || 0,
+        distribution
+      }
+    });
+
+  } catch (error) {
+    console.error("Analytics Error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

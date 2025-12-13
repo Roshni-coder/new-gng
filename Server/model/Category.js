@@ -7,15 +7,12 @@ const categorySchema = new mongoose.Schema({
         unique: true
     },
     images: [{
-        url: {
-            type: String,
-            required: true
-        },
-        altText: {
-            type: String,
-            default: ''
-        }
-    }]
+        url: { type: String, required: true },
+        altText: { type: String, default: '' }
+    }],
+    commissionRate: { type: Number, default: 0 },
+    attributes: [{ name: String, options: [String] }] // Enhanced attributes structure
+
 });
 
 const Category = mongoose.model("Category", categorySchema);

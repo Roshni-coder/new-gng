@@ -22,6 +22,15 @@ import feedbackRoutes from "./routes/feedbackRoutes.js";
 import adminRoutes from "./routes/adminRoute.js";
 import productPerformanceRoutes from "./routes/productPerformanceRoutes.js";  // ✔ FIXED
 import sellerPanelRoutes from "./routes/sellerPanelRoutes.js";  // New Seller Panel Routes
+import giftRoutes from "./routes/giftRoutes.js";
+import inventoryHubRoutes from "./routes/inventoryHubRoutes.js";
+import adminShippingRoutes from "./routes/adminShippingRoutes.js";
+import supportRoutes from "./routes/supportRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import settingsRoutes from "./routes/settingsRoutes.js";
+import reportsRoutes from "./routes/reportsRoutes.js";
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -80,6 +89,15 @@ app.use('/api/admin', adminRoutes);
 
 app.use('/api/reports/product-performance', productPerformanceRoutes);
 app.use('/api/seller-panel', sellerPanelRoutes);  // All new seller panel routes
+app.use('/api/gift-options', giftRoutes);
+app.use('/api/inventory-hub', inventoryHubRoutes);
+app.use('/api/admin/shipping', adminShippingRoutes);
+app.use('/api/admin/support', supportRoutes);
+app.use('/api/admin/notifications', notificationRoutes);
+app.use('/api/admin/settings', settingsRoutes);
+app.use('/api/admin/reports', reportsRoutes);
+
+
 
 
 app.listen(port, () => console.log(`Server started on port ${port}...`));

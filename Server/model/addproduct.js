@@ -29,9 +29,9 @@ const addproductSchema = new mongoose.Schema({
   itemWeight: { type: String },           // "300 g"
   itemDimensionsLxWxH: { type: String },  // "30 x 10 x 3 Centimeters"
   netQuantity: { type: String, default: "1 Count" },
-  genericName: { type: String },          
-  asin: { type: String },                 
-  itemPartNumber: { type: String },       
+  genericName: { type: String },
+  asin: { type: String },
+  itemPartNumber: { type: String },
   dateFirstAvailable: { type: Date },
   manufacturer: { type: String },
   packer: { type: String },
@@ -55,10 +55,10 @@ const addproductSchema = new mongoose.Schema({
     },
   ],
 
-  sellerId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: "Seller", 
-    required: true 
+  sellerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Seller",
+    required: true
   },
 
   // ⭐ Stock Fields
@@ -70,7 +70,9 @@ const addproductSchema = new mongoose.Schema({
     default: "In Stock",
   },
 
-  isAvailable: { type: Boolean, default: true }
+  isAvailable: { type: Boolean, default: true },
+  isFeatured: { type: Boolean, default: false }
+
 
 }, { timestamps: true });
 
@@ -83,10 +85,10 @@ addproductSchema.pre("save", function (next) {
   if (this.stock <= 0) {
     this.stock = 0;
     this.availability = "Out of Stock";
-  } 
+  }
   else if (this.stock < 5) {
     this.availability = "Low Stock";
-  } 
+  }
   else {
     this.availability = "In Stock";
   }

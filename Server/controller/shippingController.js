@@ -41,7 +41,10 @@ export const updateAllShippingSettings = async (req, res) => {
       returnAddress,
       defaultPickupTime,
       workingDays,
-      pickupSchedule
+      pickupSchedule,
+      codSettings,
+      trackingSettings,
+      bulkShipping
     } = req.body;
 
     let settings = await ShippingSettingsModel.findOne({ sellerId });
@@ -60,7 +63,10 @@ export const updateAllShippingSettings = async (req, res) => {
       if (defaultPickupTime !== undefined) settings.defaultPickupTime = defaultPickupTime;
       if (workingDays) settings.workingDays = workingDays;
       if (pickupSchedule) settings.pickupSchedule = pickupSchedule;
-      
+      if (codSettings) settings.codSettings = codSettings;
+      if (trackingSettings) settings.trackingSettings = trackingSettings;
+      if (bulkShipping) settings.bulkShipping = bulkShipping;
+
       await settings.save();
     } else {
       settings = new ShippingSettingsModel({
@@ -76,7 +82,10 @@ export const updateAllShippingSettings = async (req, res) => {
         returnAddress,
         defaultPickupTime,
         workingDays,
-        pickupSchedule
+        pickupSchedule,
+        codSettings,
+        trackingSettings,
+        bulkShipping
       });
       await settings.save();
     }
@@ -93,7 +102,7 @@ export const getShipments = async (req, res) => {
   try {
     const sellerId = req.sellerId || req.body.sellerId;
 
-    const orders = await orderModel.find({ 
+    const orders = await orderModel.find({
       "items.sellerId": sellerId,
       status: { $in: ["Pending", "Processing", "Shipped", "Out for Delivery", "Delivered"] }
     })
@@ -125,8 +134,8 @@ export const getShipments = async (req, res) => {
       delivered: orders.filter(o => o.status === "Delivered").length
     };
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: {
         orders: shipments,
         statusCounts
@@ -199,12 +208,12 @@ export const getDeliveryPartners = async (req, res) => {
       { name: "Ecom Express", isActive: false, priority: 5, logo: "ecom" }
     ];
 
-    const partners = settings?.deliveryPartners?.length > 0 
-      ? settings.deliveryPartners 
+    const partners = settings?.deliveryPartners?.length > 0
+      ? settings.deliveryPartners
       : defaultPartners;
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: {
         partners,
         availablePartners: defaultPartners
@@ -254,8 +263,8 @@ export const getShippingRates = async (req, res) => {
       { zoneName: "Northeast", states: ["Assam", "Meghalaya", "Manipur", "Tripura"], rate: 100, deliveryDays: 7 }
     ];
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: {
         defaultRate: settings?.defaultShippingRate || 50,
         freeShippingThreshold: settings?.freeShippingThreshold || 500,
@@ -281,11 +290,11 @@ export const updateShippingRates = async (req, res) => {
       if (shippingZones) settings.shippingZones = shippingZones;
       await settings.save();
     } else {
-      settings = new ShippingSettingsModel({ 
-        sellerId, 
-        defaultShippingRate, 
+      settings = new ShippingSettingsModel({
+        sellerId,
+        defaultShippingRate,
         freeShippingThreshold,
-        shippingZones 
+        shippingZones
       });
       await settings.save();
     }
@@ -304,8 +313,8 @@ export const getPackageDimensions = async (req, res) => {
 
     const settings = await ShippingSettingsModel.findOne({ sellerId });
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: settings?.packageDimensions || {
         defaultWeight: 0.5,
         defaultLength: 20,
@@ -373,8 +382,8 @@ export const getTrackingOrders = async (req, res) => {
       };
     });
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: {
         orders: trackingOrders,
         statusCounts: {
@@ -407,8 +416,8 @@ export const getPickupSchedule = async (req, res) => {
       { day: "Sunday", timeSlot: "Closed", isActive: false }
     ];
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: {
         schedule: settings?.pickupSchedule?.length > 0 ? settings.pickupSchedule : defaultSchedule,
         pickupAddress: settings?.pickupAddress
@@ -450,8 +459,8 @@ export const getReturnAddress = async (req, res) => {
 
     const settings = await ShippingSettingsModel.findOne({ sellerId });
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: {
         returnAddress: settings?.returnAddress,
         pickupAddress: settings?.pickupAddress,

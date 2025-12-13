@@ -28,7 +28,16 @@ const reviewSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
-  isHidden: { type: Boolean, default: false }
+  isHidden: { type: Boolean, default: false },
+  status: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Rejected', 'Reported'],
+    default: 'Pending'
+  },
+  reportReason: { type: String },
+  likes: { type: Number, default: 0 },
+  dislikes: { type: Number, default: 0 }
+
 }, { timestamps: true });
 
 const Review = mongoose.model("Review", reviewSchema);

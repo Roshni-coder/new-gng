@@ -57,7 +57,22 @@ const shippingSettingsSchema = new mongoose.Schema({
     day: String,
     timeSlot: String,
     isActive: Boolean
-  }]
+  }],
+  codSettings: {
+    enabled: { type: Boolean, default: true },
+    minOrderValue: { type: Number, default: 0 },
+    maxOrderValue: { type: Number, default: 10000 },
+    extraCharge: { type: Number, default: 0 }
+  },
+  trackingSettings: {
+    enabled: { type: Boolean, default: true },
+    provider: { type: String, default: 'Shiprocket' },
+    autoNotify: { type: Boolean, default: true }
+  },
+  bulkShipping: {
+    autoGenerateLabels: { type: Boolean, default: false }
+  }
+
 }, { timestamps: true });
 
 const ShippingSettingsModel = mongoose.models.ShippingSettings || mongoose.model("ShippingSettings", shippingSettingsSchema);

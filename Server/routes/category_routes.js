@@ -113,13 +113,13 @@ router.delete("/deletecategory/:id", async (req, res) => {
 router.put("/updatecategory/:id", upload.single("image"), async (req, res) => {
   try {
     const { id } = req.params;
-    const { categoryname, altText } = req.body;
+    const { categoryname, altText, commissionRate, attributes } = req.body;
 
     let updateData = {};
 
-    if (categoryname) {
-      updateData.categoryname = categoryname;
-    }
+    if (categoryname) updateData.categoryname = categoryname;
+    if (commissionRate !== undefined) updateData.commissionRate = commissionRate;
+    if (attributes) updateData.attributes = attributes;
 
     if (req.file) {
       // Upload new image to Cloudinary

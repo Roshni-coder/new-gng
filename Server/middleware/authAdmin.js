@@ -1,4 +1,7 @@
+import jwt from 'jsonwebtoken';
+
 const adminAuth = (req, res, next) => {
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
