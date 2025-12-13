@@ -27,7 +27,8 @@ const reviewSchema = new mongoose.Schema({
   respondedAt: {
     type: Date,
     default: null
-  }
+  },
+  isHidden: { type: Boolean, default: false }
 }, { timestamps: true });
 
 const Review = mongoose.model("Review", reviewSchema);

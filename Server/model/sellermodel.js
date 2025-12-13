@@ -22,6 +22,18 @@ const sellerschema = new mongoose.Schema({
   image: String,
   date: { type: Date, default: Date.now },
   approved: { type: Boolean, default: false },
+  // --- NEW FEATURES ---
+  status: { 
+    type: String, 
+    enum: ['Pending', 'Active', 'Suspended'], 
+    default: 'Pending' 
+  },
+  commissionRate: { type: Number, default: 5 }, // Default 5% commission
+  documents: {
+    gst: { type: String, default: '' },
+    pan: { type: String, default: '' },
+    isVerified: { type: Boolean, default: false }
+  },
 });
 
 const sellermodel = mongoose.models.seller || mongoose.model("Seller", sellerschema);

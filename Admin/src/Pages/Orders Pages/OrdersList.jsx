@@ -1,20 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { FaAngleDown, FaAngleUp } from "react-icons/fa";
-import { HiOutlineCube, HiOutlineClipboardList } from "react-icons/hi";
-import { MdOutlinePayments } from "react-icons/md";
+import { useLocation, useNavigate } from "react-router-dom";
+import { 
+  FaAngleDown, FaAngleUp, FaCalendarAlt, FaSortAmountDown, 
+  FaMapMarkerAlt, FaPhoneAlt, FaUser, FaRedoAlt 
+} from "react-icons/fa";
+import { HiOutlineClipboardList, HiOutlineRefresh, HiOutlineMail } from "react-icons/hi";
+import { MdOutlinePayments, MdDoneAll, MdCancel } from "react-icons/md";
 import Badges from "../../Components/DashbordBoxes/Badges.jsx";
 import axios from "axios";
 
-// Helper to assign consistent colors to names
+// Helper for vibrant flat avatar colors
 const getAvatarColor = (name) => {
   const colors = [
-    "bg-red-100 text-red-600",
-    "bg-emerald-100 text-emerald-600",
-    "bg-blue-100 text-blue-600",
-    "bg-amber-100 text-amber-600",
-    "bg-violet-100 text-violet-600",
-    "bg-pink-100 text-pink-600",
-    "bg-cyan-100 text-cyan-600",
+    "bg-rose-50 text-rose-600 border-rose-200",
+    "bg-emerald-50 text-emerald-600 border-emerald-200",
+    "bg-sky-50 text-sky-600 border-sky-200",
+    "bg-amber-50 text-amber-600 border-amber-200",
+    "bg-violet-50 text-violet-600 border-violet-200",
+    "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-200",
   ];
   const index = name ? name.length % colors.length : 0;
   return colors[index];
@@ -22,17 +25,29 @@ const getAvatarColor = (name) => {
 
 function OrdersList() {
   const [isOpenOrderdProduct, setOpenOrderdProduct] = useState(null);
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState([]); 
+  const [filteredOrders, setFilteredOrders] = useState([]); 
+  
+  // States for Filtering & Sorting
+  const [activeTab, setActiveTab] = useState("All");
+  const [dateFilter, setDateFilter] = useState("All Time"); 
+  const [sortType, setSortType] = useState("Newest"); 
+  const [selectedOrders, setSelectedOrders] = useState([]); 
 
-  const toggleOrderDetails = (index) => {
-    setOpenOrderdProduct(isOpenOrderdProduct === index ? null : index);
-  };
+  const location = useLocation();
+  const navigate = useNavigate();
 
+  // 1. Handle URL Params
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const statusParam = params.get("status");
+    if (statusParam) setActiveTab(statusParam);
+  }, [location.search]);
+
+  // 2. Fetch Data
   const getOrders = async () => {
     try {
-      const { data } = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/admin/orders`
-      );
+      const { data } = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/orders`);
       if (data.success) {
         setOrders(data.orders);
       }
@@ -41,230 +56,418 @@ function OrdersList() {
     }
   };
 
+  useEffect(() => { getOrders(); }, []);
+
+  // 3. Filter & Sort Logic
   useEffect(() => {
-    getOrders();
-  }, []);
+    let temp = [...orders];
+
+    // Status Filter
+    if (activeTab !== "All") {
+        temp = temp.filter(order => order.status === activeTab);
+    }
+    
+    // Date Filter
+    const now = new Date();
+    temp = temp.filter(order => {
+        const d = new Date(order.placedAt);
+        if (dateFilter === "Today") return d.toDateString() === now.toDateString();
+        if (dateFilter === "This Month") return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        if (dateFilter === "This Year") return d.getFullYear() === now.getFullYear();
+        return true; 
+    });
+
+    // Sorting Logic
+    if (sortType === "Amount: High-Low") {
+        temp.sort((a, b) => (b.totalAmount || 0) - (a.totalAmount || 0));
+    } else if (sortType === "Amount: Low-High") {
+        temp.sort((a, b) => (a.totalAmount || 0) - (b.totalAmount || 0));
+    } else if (sortType === "Newest") {
+        temp.sort((a, b) => new Date(b.placedAt) - new Date(a.placedAt));
+    } else if (sortType === "Oldest") {
+        temp.sort((a, b) => new Date(a.placedAt) - new Date(b.placedAt));
+    }
+
+    setFilteredOrders(temp);
+  }, [orders, activeTab, dateFilter, sortType]);
+
+  // --- Reset Filter Function ---
+  const resetFilters = () => {
+    setActiveTab("All");
+    setDateFilter("All Time");
+    setSortType("Newest");
+    setSelectedOrders([]);
+    navigate("/orders", { replace: true });
+  };
+
+  const toggleOrderDetails = (index) => setOpenOrderdProduct(isOpenOrderdProduct === index ? null : index);
+
+  const handleSelectAll = (e) => {
+    setSelectedOrders(e.target.checked ? filteredOrders.map(o => o._id) : []);
+  };
+
+  const handleSelectRow = (id) => {
+    setSelectedOrders(prev => prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]);
+  };
+
+  // Modern Flat Tabs Config
+  const tabs = [
+    { label: "All", value: "All", color: "bg-slate-800 text-white border-slate-800" },
+    { label: "Pending", value: "Pending", color: "bg-amber-50 text-amber-700 border-amber-200" },
+    { label: "Processing", value: "Processing", color: "bg-blue-50 text-blue-700 border-blue-200" },
+    { label: "Shipped", value: "Shipped", color: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+    { label: "Delivered", value: "Delivered", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    { label: "Cancelled", value: "Cancelled", color: "bg-rose-50 text-rose-700 border-rose-200" },
+  ];
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl shadow-slate-100 border border-slate-100 overflow-hidden my-8">
+    <div className="space-y-6 pb-10 font-sans text-slate-800">
       
-      {/* --- Multi-Color Header Section --- */}
-      <div className="px-8 py-6 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 flex items-center justify-between text-white shadow-lg relative overflow-hidden">
-        {/* Decorative Circle */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-        
-        <div className="flex items-center gap-3 z-10">
-            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-                <HiOutlineClipboardList className="text-2xl" />
-            </div>
-            <div>
-                <h2 className="text-xl font-bold tracking-wide">Recent Orders</h2>
-                <p className="text-xs text-purple-100 opacity-90">Manage and track your latest sales</p>
-            </div>
-        </div>
-        <span className="text-xs font-bold px-4 py-1.5 bg-white text-purple-600 rounded-full shadow-sm z-10">
-            {orders.length} Active Orders
-        </span>
+      {/* --- 1. Vibrant Flat Stats Cards --- */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard 
+            label="Total Orders" 
+            count={filteredOrders.length} 
+            icon={<HiOutlineClipboardList />} 
+            theme="blue"
+          />
+          <StatCard 
+            label="Pending Action" 
+            count={filteredOrders.filter(o => o.status === 'Pending' || o.status === 'Processing').length} 
+            icon={<HiOutlineRefresh />} 
+            theme="amber"
+          />
+          <StatCard 
+            label="Completed" 
+            count={filteredOrders.filter(o => o.status === 'Delivered').length} 
+            icon={<MdDoneAll />} 
+            theme="emerald"
+          />
+          <StatCard 
+            label="Cancelled" 
+            count={filteredOrders.filter(o => o.status === 'Cancelled').length} 
+            icon={<MdCancel />} 
+            theme="rose"
+          />
       </div>
 
-      {/* --- Table Section --- */}
-      <div className="overflow-x-auto">
-        <table className="w-full whitespace-nowrap text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
-              <th className="px-6 py-5 w-[50px]">View</th> 
-              <th className="px-6 py-5">Order Info</th>
-              <th className="px-6 py-5">Customer Profile</th>
-              <th className="px-6 py-5">Amount</th>
-              <th className="px-6 py-5">Payment</th>
-              <th className="px-6 py-5">Status</th>
-              <th className="px-6 py-5">Placed On</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {orders.length > 0 ? (
-              orders.map((order, index) => {
-                const isExpanded = isOpenOrderdProduct === index;
-                const avatarClass = getAvatarColor(order.shippingAddress?.name);
-
-                return (
-                  <React.Fragment key={order._id}>
-                    {/* --- Main Order Row --- */}
-                    <tr 
-                      className={`
-                        transition-all duration-200 group
-                        ${isExpanded ? 'bg-indigo-50/40 border-l-4 border-l-indigo-500' : 'hover:bg-slate-50 border-l-4 border-l-transparent'}
-                      `}
-                    >
-                      <td className="px-6 py-4">
+      {/* --- 2. Main Table Container --- */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        
+        {/* Header Filters */}
+        <div className="px-6 py-5 border-b border-slate-100 bg-white">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                
+                {/* Tabs */}
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 xl:pb-0">
+                    {tabs.map((tab) => (
                         <button
-                          onClick={() => toggleOrderDetails(index)}
-                          className={`
-                              w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-200 shadow-sm
-                              ${isExpanded ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white border border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500'}
-                          `}
+                            key={tab.value}
+                            onClick={() => setActiveTab(tab.value)}
+                            className={`
+                                px-4 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap border
+                                ${activeTab === tab.value 
+                                    ? `${tab.color}` 
+                                    : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"}
+                            `}
                         >
-                          {isExpanded ? <FaAngleUp /> : <FaAngleDown />}
+                            {tab.label}
                         </button>
-                      </td>
-                      
-                      {/* Order ID */}
-                      <td className="px-6 py-4">
-                          <span className="font-mono text-xs font-bold text-cyan-700 bg-cyan-50 border border-cyan-100 px-2.5 py-1 rounded-md">
-                              #{order._id.slice(-6).toUpperCase()}
-                          </span>
-                      </td>
-                      
-                      {/* Customer with Colored Avatar */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${avatarClass}`}>
-                                {order.shippingAddress?.name?.[0]?.toUpperCase() || "U"}
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-sm font-semibold text-slate-700">{order.shippingAddress?.name}</span>
-                                <span className="text-xs text-slate-400 font-medium">{order.shippingAddress?.phone}</span>
-                            </div>
-                        </div>
-                      </td>
+                    ))}
+                </div>
 
-                      {/* Total Amount */}
-                      <td className="px-6 py-4">
-                        <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-                           ₹{order.totalAmount?.toLocaleString('en-IN')}
-                        </span>
-                      </td>
+                {/* Right Side Controls */}
+                <div className="flex flex-wrap items-center gap-3">
+                    
+                    {/* Sort Dropdown */}
+                    <div className="flex items-center gap-2 relative group">
+                        <FaSortAmountDown className="text-slate-400 absolute left-3 pointer-events-none" size={12}/>
+                        <select 
+                            value={sortType}
+                            onChange={(e) => setSortType(e.target.value)}
+                            className="pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100 hover:border-slate-300 cursor-pointer appearance-none"
+                        >
+                            <option value="Newest">Newest First</option>
+                            <option value="Oldest">Oldest First</option>
+                            <option value="Amount: High-Low">Price: High to Low</option>
+                            <option value="Amount: Low-High">Price: Low to High</option>
+                        </select>
+                    </div>
 
-                      {/* Payment Method */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5">
-                           <div className={`p-1.5 rounded-full ${order.paymentId ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-orange-600'}`}>
-                                <MdOutlinePayments size={14} />
-                           </div>
-                           <span className={`text-xs font-semibold ${order.paymentId ? 'text-purple-700' : 'text-orange-700'}`}>
-                              {order.paymentId ? "Online" : "COD"}
-                           </span>
-                        </div>
-                      </td>
+                    {/* Date Dropdown */}
+                    <div className="flex items-center gap-2 relative group">
+                        <FaCalendarAlt className="text-slate-400 absolute left-3 pointer-events-none" size={12}/>
+                        <select 
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value)}
+                            className="pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100 hover:border-slate-300 cursor-pointer appearance-none"
+                        >
+                            <option value="All Time">All Time</option>
+                            <option value="Today">Today</option>
+                            <option value="This Month">This Month</option>
+                            <option value="This Year">This Year</option>
+                        </select>
+                    </div>
 
-                      <td className="px-6 py-4">
-                        <Badges status={order.status} />
-                      </td>
+                    {/* Reset Button */}
+                    <button 
+                        onClick={resetFilters}
+                        className="flex items-center gap-2 px-4 py-2 bg-white text-rose-600 border border-rose-200 rounded-lg text-xs font-bold hover:bg-rose-50 transition-colors"
+                        title="Reset all filters"
+                    >
+                        <FaRedoAlt /> Reset
+                    </button>
 
-                      <td className="px-6 py-4 text-sm font-medium text-slate-500">
-                        {new Date(order.placedAt).toLocaleDateString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                        })}
-                        <span className="text-xs text-slate-400 ml-1">
-                            '{new Date(order.placedAt).toLocaleDateString("en-IN", { year: "2-digit" })}
-                        </span>
-                      </td>
-                    </tr>
+                </div>
+            </div>
+        </div>
 
-                    {/* --- Expanded Details Row (Warm Theme) --- */}
-                    {isExpanded && (
-                      <tr>
-                        <td colSpan="7" className="p-0">
-                          <div className="bg-gradient-to-b from-indigo-50/40 to-white p-6 shadow-inner">
-                            
-                            <div className="bg-white rounded-2xl border border-amber-100 overflow-hidden shadow-sm max-w-5xl mx-auto">
-                                {/* Inner Header - Warm/Orange Tone for distinction */}
-                                <div className="px-6 py-3 bg-amber-50/50 border-b border-amber-100 flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <HiOutlineCube className="text-amber-500"/>
-                                        <h3 className="text-xs font-bold text-amber-700 uppercase tracking-wide">Product Details</h3>
-                                    </div>
-                                    <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded">
-                                        {order.items?.length || 0} ITEMS
-                                    </span>
-                                </div>
+        {/* --- 3. Table Data --- */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                <th className="px-6 py-4 w-[40px]">
+                    <input type="checkbox" onChange={handleSelectAll} checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"/>
+                </th>
+                <th className="px-4 py-4 w-[50px]"></th> 
+                <th className="px-6 py-4">Order ID</th>
+                <th className="px-6 py-4">Customer</th>
+                <th className="px-6 py-4">Payment</th>
+                <th className="px-6 py-4">Total</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {filteredOrders.length > 0 ? (
+                filteredOrders.map((order, index) => {
+                  const isExpanded = isOpenOrderdProduct === index;
+                  const isSelected = selectedOrders.includes(order._id);
 
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm text-left">
-                                        <thead className="text-xs text-slate-500 bg-white border-b border-slate-100">
-                                            <tr>
-                                                <th className="px-6 py-3 font-medium">Item Name</th>
-                                                <th className="px-6 py-3 font-medium">Unit Price</th>
-                                                <th className="px-6 py-3 font-medium text-center">Qty</th>
-                                                <th className="px-6 py-3 font-medium">Subtotal</th>
-                                                <th className="px-6 py-3 font-medium">Vendor</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-50">
-                                            {order.items?.map((item) => (
-                                                <tr key={item._id} className="hover:bg-slate-50/80 transition-colors">
-                                                    {/* Product Info */}
-                                                    <td className="px-6 py-3">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex-shrink-0 overflow-hidden relative group/img">
-                                                                {order.image ? (
-                                                                    <img src={order.image} alt="product" className="w-full h-full object-cover"/>
-                                                                ) : (
-                                                                    <div className="w-full h-full flex items-center justify-center text-slate-300 text-xs">IMG</div>
-                                                                )}
-                                                            </div>
-                                                            <div className="max-w-[220px]">
-                                                                <p className="text-sm font-semibold text-slate-800 truncate" title={item.productId?.title}>
-                                                                    {item.productId?.title || "Unknown Product"}
-                                                                </p>
-                                                                <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                                                                    ID: <span className="text-slate-500">{item.productId?._id?.slice(-4)}</span>
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-
-                                                    <td className="px-6 py-3 text-slate-600">₹{item.price}</td>
-                                                    <td className="px-6 py-3 text-center">
-                                                        <span className="inline-block w-8 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded">
-                                                            {item.quantity}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-3 font-bold text-slate-800">
-                                                        ₹{(item.price * item.quantity).toFixed(2)}
-                                                    </td>
-                                                    
-                                                    {/* Seller Info */}
-                                                    <td className="px-6 py-3">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-xs font-bold text-blue-600">
-                                                                {item.sellerId?.name || "Admin"}
-                                                            </span>
-                                                            <span className="text-[10px] text-slate-400">{item.sellerId?.email || "-"}</span>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                  return (
+                    <React.Fragment key={order._id}>
+                      <tr className={`hover:bg-slate-50 transition-colors ${isSelected ? 'bg-blue-50/40' : ''}`}>
+                         <td className="px-6 py-4">
+                            <input type="checkbox" checked={isSelected} onChange={() => handleSelectRow(order._id)} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"/>
+                        </td>
+                        <td className="px-4 py-4">
+                          <button 
+                            onClick={() => toggleOrderDetails(index)} 
+                            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${isExpanded ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
+                          >
+                             {isExpanded ? <FaAngleUp size={12}/> : <FaAngleDown size={12}/>}
+                          </button>
+                        </td>
+                        
+                        {/* Order ID */}
+                        <td className="px-6 py-4">
+                            <span className="font-mono text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-1 rounded">
+                                #{order._id.slice(-6).toUpperCase()}
+                            </span>
+                        </td>
+                        
+                        {/* Customer */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border ${getAvatarColor(order.shippingAddress?.name)}`}>
+                                  {order.shippingAddress?.name?.[0]?.toUpperCase() || "U"}
+                              </div>
+                              <div className="flex flex-col">
+                                  <span className="text-sm font-semibold text-slate-700">{order.shippingAddress?.name}</span>
+                                  <span className="text-[11px] text-slate-400">{order.shippingAddress?.phone}</span>
+                              </div>
                           </div>
                         </td>
+
+                        {/* Payment Info */}
+                        <td className="px-6 py-4">
+                           {order.paymentId ? (
+                               <div className="flex flex-col items-start">
+                                   <span className="text-[10px] font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded border border-violet-100 mb-1">ONLINE</span>
+                                   <span className="text-[10px] text-slate-400 font-mono tracking-tight max-w-[80px] truncate" title={order.paymentId}>
+                                       {order.paymentId}
+                                   </span>
+                               </div>
+                           ) : (
+                               <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100">COD</span>
+                           )}
+                        </td>
+
+                        {/* Amount */}
+                        <td className="px-6 py-4">
+                            <span className="text-sm font-bold text-slate-800">
+                                ₹{order.totalAmount?.toLocaleString('en-IN')}
+                            </span>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-6 py-4">
+                             <div className="transform scale-95 origin-left">
+                                <Badges status={order.status} />
+                             </div>
+                        </td>
+
+                        {/* Date */}
+                        <td className="px-6 py-4">
+                            <div className="flex flex-col text-sm text-slate-500 font-medium">
+                                <span>{new Date(order.placedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</span>
+                                <span className="text-[10px] text-slate-400">{new Date(order.placedAt).getFullYear()}</span>
+                            </div>
+                        </td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="7" className="px-6 py-16 text-center text-slate-400 bg-slate-50/30">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="p-4 bg-white rounded-full shadow-sm">
-                         <HiOutlineCube className="text-4xl text-slate-300" />
+
+                      {/* --- Expanded Details View (Clean & No Over-Shadow) --- */}
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan="8" className="p-0">
+                            <div className="p-4 bg-slate-50/50 border-y border-slate-100">
+                              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col lg:flex-row">
+                                  
+                                  {/* Left: Product List */}
+                                  <div className="flex-1 border-r border-slate-100">
+                                      <div className="px-6 py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                                          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ordered Items</h4>
+                                          <span className="text-xs font-semibold bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-600">
+                                              {order.items?.length} Items
+                                          </span>
+                                      </div>
+                                      <div className="divide-y divide-slate-50">
+                                          {order.items?.map((item) => (
+                                              <div key={item._id} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors">
+                                                  <div className="flex items-center gap-4">
+                                                      <div className="w-12 h-12 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
+                                                          {item.image || order.image ? 
+                                                            <img src={item.image || order.image} className="w-full h-full object-cover"/> 
+                                                            : <div className="flex items-center justify-center h-full text-[10px] text-slate-400">IMG</div>
+                                                          }
+                                                      </div>
+                                                      <div>
+                                                          <p className="text-sm font-semibold text-slate-700">{item.productId?.title || "Product Removed"}</p>
+                                                          <div className="flex items-center gap-2 mt-1">
+                                                              <span className="text-xs text-slate-500 bg-slate-100 px-1.5 rounded border border-slate-200">Qty: {item.quantity}</span>
+                                                              <span className="text-xs text-slate-400">x</span>
+                                                              <span className="text-xs text-slate-500">₹{item.price}</span>
+                                                          </div>
+                                                      </div>
+                                                  </div>
+                                                  <div className="text-right">
+                                                      <p className="text-sm font-bold text-slate-800">₹{(item.price * item.quantity).toFixed(2)}</p>
+                                                  </div>
+                                              </div>
+                                          ))}
+                                      </div>
+                                  </div>
+
+                                  {/* Right: Customer & Shipping (Pincode Included) */}
+                                  <div className="w-full lg:w-[320px] bg-slate-50/30 p-5 flex flex-col gap-6">
+                                      
+                                      {/* Address Details */}
+                                      <div>
+                                          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                              <FaMapMarkerAlt className="text-indigo-500"/> Shipping Details
+                                          </h4>
+                                          <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm">
+                                              <p className="font-bold text-sm text-slate-700 mb-1">{order.shippingAddress?.name}</p>
+                                              <p className="text-xs text-slate-500 leading-relaxed">
+                                                  {order.shippingAddress?.address} <br/>
+                                                  {order.shippingAddress?.city}, {order.shippingAddress?.state} <br/>
+                                              </p>
+                                              
+                                              {/* ✅ PINCODE FIX: Checks for multiple common field names */}
+                                              <div className="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-slate-50">
+                                                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded">
+                                                      {order.shippingAddress?.country || "India"}
+                                                  </span>
+                                                  <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100">
+                                                      PIN: {order.shippingAddress?.pincode || order.shippingAddress?.zipCode || order.shippingAddress?.pinCode || order.shippingAddress?.postalCode || "N/A"}
+                                                  </span>
+                                              </div>
+                                          </div>
+                                      </div>
+
+                                      {/* Contact Info */}
+                                      <div>
+                                          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                              <FaUser className="text-indigo-500"/> Contact Info
+                                          </h4>
+                                          <div className="space-y-2">
+                                              <div className="flex items-center gap-3 bg-white px-3 py-2.5 rounded-lg border border-slate-100">
+                                                  <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-[10px]">
+                                                      <FaPhoneAlt />
+                                                  </div>
+                                                  <span className="text-xs font-medium text-slate-600">{order.shippingAddress?.phone || "N/A"}</span>
+                                              </div>
+                                              {order.shippingAddress?.email && (
+                                                  <div className="flex items-center gap-3 bg-white px-3 py-2.5 rounded-lg border border-slate-100">
+                                                      <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-[12px]">
+                                                          <HiOutlineMail />
+                                                      </div>
+                                                      <span className="text-xs font-medium text-slate-600 truncate w-[180px]" title={order.shippingAddress.email}>
+                                                          {order.shippingAddress.email}
+                                                      </span>
+                                                  </div>
+                                              )}
+                                          </div>
+                                      </div>
+
+                                  </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="8" className="px-6 py-20 text-center text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                        <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100">
+                            <HiOutlineClipboardList className="text-xl text-slate-300"/>
+                        </div>
+                        <p>No orders found matching your filters.</p>
+                        <button onClick={resetFilters} className="text-xs text-blue-600 font-bold hover:underline mt-1">Clear Filters</button>
                     </div>
-                    <p className="font-medium text-slate-500">No orders found</p>
-                    <p className="text-xs">New orders will appear here automatically.</p>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 }
+
+// Clean Flat Stat Card Component
+const StatCard = ({ label, count, icon, theme }) => {
+    const themes = {
+        blue: "bg-blue-50 text-blue-700 border-blue-100",
+        amber: "bg-amber-50 text-amber-700 border-amber-100",
+        emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+        rose: "bg-rose-50 text-rose-700 border-rose-100",
+    };
+
+    const iconThemes = {
+        blue: "bg-blue-100 text-blue-600",
+        amber: "bg-amber-100 text-amber-600",
+        emerald: "bg-emerald-100 text-emerald-600",
+        rose: "bg-rose-100 text-rose-600",
+    };
+
+    return (
+        <div className={`rounded-xl p-5 border ${themes[theme]} flex items-center justify-between hover:scale-[1.02] transition-transform shadow-sm`}>
+            <div>
+                <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">{label}</p>
+                <h3 className="text-2xl font-extrabold">{count}</h3>
+            </div>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${iconThemes[theme]}`}>
+                {icon}
+            </div>
+        </div>
+    );
+};
 
 export default OrdersList;

@@ -13,6 +13,12 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    activityLog: [
+    {
+      action: { type: String }, // e.g., "Login", "Purchase"
+      date: { type: Date, default: Date.now }
+    }
+  ],
     verifyotp: {
         type: String,
         default: ''
@@ -33,6 +39,8 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    isBlocked: { type: Boolean, default: false },
+    
 });
 
 // Corrected model creation logic
