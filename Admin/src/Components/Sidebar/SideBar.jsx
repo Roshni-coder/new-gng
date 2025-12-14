@@ -309,7 +309,7 @@ function SideBar() {
       {/* --- Sidebar Container --- */}
       <div
         className={`
-          fixed md:relative top-0 left-0 w-[80vw] sm:w-[280px] h-full bg-white z-[1051] md:z-auto
+          fixed md:relative top-0 left-0 w-[80vw] sm:w-[300px] h-full bg-white z-[1051] md:z-auto
           md:translate-x-0
           shadow-2xl md:shadow-none md:border-r border-gray-100
           transform transition-transform duration-300 ease-out
