@@ -1,13 +1,63 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
-import { Button, FormControl, InputLabel, TextField, Autocomplete } from '@mui/material';
-import { MdOutlineCloudUpload, MdInventory, MdDescription, MdAttachMoney, MdInfo, MdCategory, MdPublic } from 'react-icons/md';
+import { Button, FormControl, TextField, Autocomplete } from '@mui/material';
+import { MdOutlineCloudUpload, MdDescription, MdAttachMoney, MdInfo, MdCategory, MdPublic } from 'react-icons/md';
 import Modal from '@mui/material/Modal';
 import Box from '@mui/material/Box';
 import AddCategory from '../Category/AddCategory';
 import AddSubCategory from '../Category/AddSubCategory';
+
+const MAX_IMAGES = 5;
+
+const getInitialProduct = () => ({
+  title: "",
+  description: "",
+  categoryname: "",
+  subcategory: "",
+  oldprice: "",
+  discount: "",
+  stock: "",
+  ingredients: "",
+  brand: "",
+  size: "",
+  additional_details: "",
+  productDimensions: "",
+  itemWeight: "",
+  itemDimensionsLxWxH: "",
+  netQuantity: "1 Count",
+  genericName: "",
+  asin: "",
+  itemPartNumber: "",
+  dateFirstAvailable: "",
+  bestSellerRank: "",
+  materialComposition: "",
+  outerMaterial: "",
+  length: "",
+  careInstructions: "",
+  aboutThisItem: "",
+  manufacturer: "",
+  packer: "",
+  department: "",
+  countryOfOrigin: "India"
+});
+
+const Req = () => <span className="text-red-500 font-bold ml-1">*</span>;
+
+const FormCard = ({ children, color, title, icon }) => (
+  <div className={`bg-white rounded-2xl shadow-lg border-t-4 ${color} overflow-hidden mb-6 transition-all hover:shadow-xl`}>
+    <div className="px-6 py-4 bg-opacity-10 flex items-center gap-3 border-b border-gray-100">
+      <div className="p-2 rounded-lg bg-gray-50 text-xl">
+        {icon}
+      </div>
+      <h3 className="text-lg font-bold text-gray-800">{title}</h3>
+    </div>
+    <div className="p-6">
+      {children}
+    </div>
+  </div>
+);
 
 function AddProduct() {
   const [categories, setCategories] = useState([]);
@@ -20,49 +70,11 @@ function AddProduct() {
   const stoken = localStorage.getItem('stoken') || "null";
 
   // ⭐ ALL FIELDS FROM SCHEMA ADDED HERE
-  const [Product, setProduct] = useState({
-    // --- Required Fields ---
-    title: "",
-    description: "",
-    categoryname: "",
-    subcategory: "",
-    price: "",
-    oldprice: "",
-    discount: "",
-    stock: "",
-
-    // --- Basic Optional ---
-    ingredients: "",
-    brand: "",
-    size: "",
-    additional_details: "",
-
-    // --- Specifications ---
-    productDimensions: "",
-    itemWeight: "",
-    itemDimensionsLxWxH: "",
-    netQuantity: "1 Count",
-    genericName: "",
-    asin: "",
-    itemPartNumber: "",
-    dateFirstAvailable: "", // Date
-    bestSellerRank: "",
-
-    // --- Materials & Care ---
-    materialComposition: "",
-    outerMaterial: "",
-    length: "",
-    careInstructions: "",
-    aboutThisItem: "",
-
-    // --- Origin & Manufacturer ---
-    manufacturer: "",
-    packer: "",
-    department: "",
-    countryOfOrigin: "India",
-    
-    images: []
-  });
+  const [Product, setProduct] = useState(getInitialProduct);
+  const [formError, setFormError] = useState("");
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sellerLoading, setSellerLoading] = useState(true);
 
   useEffect(() => {
     fetchCategories();
@@ -76,6 +88,7 @@ function AddProduct() {
       setCategories(response.data);
     } catch (error) {
       console.error('Error fetching categories:', error);
+      setFormError('Unable to load categories. Please refresh the page.');
     }
   };
 
@@ -85,15 +98,25 @@ function AddProduct() {
       setSubcategories(response.data);
     } catch (error) {
       console.error('Error fetching subcategories:', error);
+      setFormError('Unable to load subcategories. Please refresh the page.');
     }
   };
 
   const fetchSeller = async () => {
-    const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/seller/sellerdetails`, { headers: { stoken } })
-    if (res.data.success) {
-      setApproved(res.data.seller[0].approved);
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/seller/sellerdetails`, { headers: { stoken } });
+      if (res.data.success && Array.isArray(res.data.seller) && res.data.seller.length) {
+        setApproved(res.data.seller[0].approved);
+      } else {
+        setFormError(res.data.message || 'Unable to verify seller status.');
+      }
+    } catch (error) {
+      console.error('Error fetching seller status:', error);
+      setFormError('Unable to verify seller status. Please try again.');
+    } finally {
+      setSellerLoading(false);
     }
-  }
+  };
 
   // Filter Subcategories logic
   useEffect(() => {
@@ -102,63 +125,126 @@ function AddProduct() {
         (sub) => sub.category?._id === Product.categoryname
       );
       setFilteredSubcategories(filtered);
-      setProduct((prev) => ({ ...prev, subcategory: "" }));
+
+      const isSubcategoryValid = filtered.some((sub) => sub._id === Product.subcategory);
+      if (!isSubcategoryValid && Product.subcategory) {
+        setProduct((prev) => ({ ...prev, subcategory: "" }));
+      }
     } else {
       setFilteredSubcategories([]);
+      if (Product.subcategory) {
+        setProduct((prev) => ({ ...prev, subcategory: "" }));
+      }
     }
-  }, [Product.categoryname, subcategories]);
+  }, [Product.categoryname, Product.subcategory, subcategories]);
 
   const handleChange = (e) => {
-    setProduct({ ...Product, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormError("");
+    setSubmitMessage("");
+    setProduct((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (name) => (event) => {
-    setProduct({ ...Product, [name]: event.target.value });
+    const { value } = event.target;
+    setFormError("");
+    setSubmitMessage("");
+    setProduct((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleImageUpload = (files) => {
+    if (!files?.length) return;
+
+    setFormError("");
     const fileList = Array.from(files);
-    setImages((prevImages) => [...prevImages, ...fileList]);
-    setProduct((prevProduct) => ({
-      ...prevProduct,
-      images: [...prevProduct.images, ...fileList],
-    }));
+    const availableSlots = MAX_IMAGES - images.length;
+
+    if (availableSlots <= 0) {
+      setFormError(`You can upload up to ${MAX_IMAGES} images per product.`);
+      return;
+    }
+
+    if (fileList.length > availableSlots) {
+      setFormError(`Only ${availableSlots} more image${availableSlots > 1 ? "s" : ""} allowed.`);
+    }
+
+    const sanitizedFiles = fileList.slice(0, availableSlots);
+    setImages((prevImages) => [...prevImages, ...sanitizedFiles]);
   };
 
   const handleImageRemove = (indexToRemove) => {
     const updated = images.filter((_, i) => i !== indexToRemove);
     setImages(updated);
-    setProduct((prev) => ({ ...prev, images: updated }));
+    setFormError("");
   };
 
-  // Price Calculation Logic
-  useEffect(() => {
-    const oldPrice = parseFloat(Product.oldprice);
-    const discount = parseFloat(Product.discount);
+  const finalPrice = useMemo(() => {
+    const basePrice = parseFloat(Product.oldprice);
+    const discountValue = parseFloat(Product.discount);
 
-    if (!isNaN(oldPrice) && !isNaN(discount)) {
-      const discountedPrice = oldPrice - (oldPrice * discount / 100);
-      setProduct((prevProduct) => ({
-        ...prevProduct,
-        price: discountedPrice.toFixed(2)
-      }));
+    if (isNaN(basePrice) || isNaN(discountValue)) {
+      return "";
     }
+
+    const discounted = basePrice - (basePrice * discountValue / 100);
+    if (!isFinite(discounted)) {
+      return "";
+    }
+
+    const normalized = discounted <= 0 ? 0 : discounted;
+    return normalized.toFixed(2);
   }, [Product.oldprice, Product.discount]);
 
-  const addproduct = async () => {
-    // Basic validation for required fields
-    if(!Product.title || !Product.description || !Product.stock || !Product.oldprice || !Product.discount || !Product.categoryname || !Product.subcategory){
-        alert("Please fill all required fields marked with *");
-        return;
+  const imagePreviews = useMemo(
+    () => images.map((file) => ({ file, url: URL.createObjectURL(file) })),
+    [images]
+  );
+
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    };
+  }, [imagePreviews]);
+
+  const addproduct = async (event) => {
+    event.preventDefault();
+    setFormError("");
+    setSubmitMessage("");
+
+    const requiredFields = ["title", "description", "stock", "oldprice", "discount", "categoryname", "subcategory"];
+    const missingField = requiredFields.find((field) => !String(Product[field] || "").trim());
+
+    if (missingField) {
+      setFormError("Please fill all required fields marked with *.");
+      return;
     }
+
+    if (!finalPrice) {
+      setFormError("Provide seller price and discount to calculate the final price.");
+      return;
+    }
+
+    if (!images.length) {
+      setFormError("Upload at least one product image.");
+      return;
+    }
+
+    if (Number(Product.stock) <= 0) {
+      setFormError("Stock must be at least 1.");
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       const formData = new FormData();
       Object.entries(Product).forEach(([key, value]) => {
-        if (key !== "images") {
-          formData.append(key, value);
-        }
+        if (value === undefined || value === null) return;
+        if (typeof value === 'string' && value.trim() === '') return;
+        formData.append(key, value);
       });
+
+      formData.append("price", finalPrice);
       images.forEach((img) => formData.append("images", img));
 
       const response = await axios.post(
@@ -168,13 +254,28 @@ function AddProduct() {
       );
 
       if (response.data.success) {
-        alert("Product added successfully!");
-        window.location.reload();
+        setSubmitMessage("Product added successfully!");
+        resetForm();
+        fetchCategories();
+        fetchSubcategories();
+      } else {
+        setFormError(response.data.message || "Failed to add product.");
       }
     } catch (error) {
       console.error("Error adding product:", error.response || error);
-      alert("Failed to add product.");
+      const message = error.response?.data?.message || "Failed to add product.";
+      setFormError(message);
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const resetForm = () => {
+    setProduct(getInitialProduct());
+    setImages([]);
+    setFilteredSubcategories([]);
+    setFormError("");
+    setSubmitMessage("");
   };
 
   const handleOpenCategoryModal = () => setOpenAddCategoryModal(true);
@@ -189,6 +290,17 @@ function AddProduct() {
     fetchSubcategories();
   };
 
+  if (sellerLoading) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center bg-gray-50">
+        <div className="bg-white border border-gray-200 text-gray-600 text-center px-10 py-16 rounded-2xl shadow max-w-xl w-full">
+          <h2 className="text-2xl font-semibold mb-3">Loading seller status…</h2>
+          <p>Please wait while we verify your permissions.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!approved) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center bg-gray-50">
@@ -199,26 +311,6 @@ function AddProduct() {
       </div>
     );
   }
-
-  // --- MODERN UI COMPONENTS ---
-
-  // Helper for Required Star
-  const Req = () => <span className="text-red-500 font-bold ml-1">*</span>;
-
-  // Custom Card Wrapper with Color Strip
-  const FormCard = ({ children, color, title, icon }) => (
-    <div className={`bg-white rounded-2xl shadow-lg border-t-4 ${color} overflow-hidden mb-6 transition-all hover:shadow-xl`}>
-      <div className={`px-6 py-4 bg-opacity-10 flex items-center gap-3 border-b border-gray-100`}>
-        <div className={`p-2 rounded-lg bg-gray-50 text-xl`}>
-            {icon}
-        </div>
-        <h3 className="text-lg font-bold text-gray-800">{title}</h3>
-      </div>
-      <div className="p-6">
-        {children}
-      </div>
-    </div>
-  );
 
   return (
     <section className="min-h-screen bg-slate-50 py-10 px-4 md:px-8">
@@ -233,16 +325,17 @@ function AddProduct() {
                 <p className="text-gray-500 mt-1">Fill in the details to publish your product.</p>
             </div>
             <Button 
-                variant="outlined" 
-                color="secondary"
-                onClick={() => window.location.reload()}
-                className="!rounded-full !px-6 !border-gray-300 !text-gray-600 hover:!bg-gray-100"
+              variant="outlined" 
+              color="secondary"
+              type="button"
+              onClick={resetForm}
+              className="!rounded-full !px-6 !border-gray-300 !text-gray-600 hover:!bg-gray-100"
             >
-                Reset Form
+              Reset Form
             </Button>
         </div>
 
-        <form className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <form onSubmit={addproduct} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             {/* ---------------- LEFT COLUMN (Content) ---------------- */}
             <div className="lg:col-span-2 space-y-2">
@@ -264,6 +357,15 @@ function AddProduct() {
                             <TextField label="Brand" name="brand" fullWidth value={Product.brand} onChange={handleChange} />
                             <TextField label="Generic Name" name="genericName" fullWidth value={Product.genericName} onChange={handleChange} placeholder="e.g. Shirt" />
                         </div>
+
+                        <TextField 
+                          label="Key Ingredients / Highlights" 
+                          name="ingredients" 
+                          fullWidth 
+                          value={Product.ingredients} 
+                          onChange={handleChange} 
+                          placeholder="Organic cotton, hypoallergenic colors"
+                        />
 
                         <TextField 
                             label={<span>Description <Req/></span>}
@@ -310,6 +412,11 @@ function AddProduct() {
                         <TextField label="L x W x H" name="itemDimensionsLxWxH" value={Product.itemDimensionsLxWxH} onChange={handleChange} />
                     </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                      <TextField label="Length" name="length" value={Product.length} onChange={handleChange} placeholder="Calf length, short, long" />
+                      <TextField label="Best Seller Rank" name="bestSellerRank" value={Product.bestSellerRank} onChange={handleChange} />
+                    </div>
+
                     <div className="grid grid-cols-1 gap-5">
                          <TextField label="Care Instructions" name="careInstructions" fullWidth value={Product.careInstructions} onChange={handleChange} />
                          <TextField label="Additional Details" name="additional_details" fullWidth value={Product.additional_details} onChange={handleChange} />
@@ -319,12 +426,12 @@ function AddProduct() {
                 {/* 3. IMAGES - PINK THEME */}
                 <FormCard color="border-pink-500" title="Product Gallery" icon={<MdOutlineCloudUpload className="text-pink-500"/>}>
                     <div className="flex flex-wrap gap-4">
-                        {images.map((img, index) => (
+                        {imagePreviews.map((preview, index) => (
                             <div key={index} className="relative group">
                                 <img
                                     className="w-28 h-28 object-cover rounded-xl border-2 border-gray-100 shadow-sm"
-                                    src={URL.createObjectURL(img)}
-                                    alt={`preview-${index}`}
+                              src={preview.url}
+                              alt={`preview-${index}`}
                                 />
                                 <button
                                     type="button"
@@ -335,15 +442,26 @@ function AddProduct() {
                                 </button>
                             </div>
                         ))}
-                        <label htmlFor="multi-img" className="cursor-pointer group">
+                        <label htmlFor="multi-img" className={`cursor-pointer group ${images.length >= MAX_IMAGES ? 'opacity-60 pointer-events-none' : ''}`}>
                             <div className="w-28 h-28 flex flex-col items-center justify-center border-2 border-dashed border-pink-300 rounded-xl bg-pink-50 group-hover:bg-pink-100 group-hover:border-pink-500 transition-all duration-300">
                                 <span className="text-3xl text-pink-400 group-hover:text-pink-600 mb-1">+</span>
                                 <span className="text-xs font-semibold text-pink-400 group-hover:text-pink-600">Upload</span>
                             </div>
                         </label>
-                        <input id="multi-img" type="file" accept="image/*" multiple hidden onChange={(e) => handleImageUpload(e.target.files)} />
+                        <input 
+                          id="multi-img" 
+                          type="file" 
+                          accept="image/*" 
+                          multiple 
+                          hidden 
+                          disabled={images.length >= MAX_IMAGES}
+                          onChange={(e) => {
+                            handleImageUpload(e.target.files);
+                            e.target.value = '';
+                          }} 
+                        />
                     </div>
-                    <p className="text-xs text-gray-400 mt-3">* First image will be the cover image.</p>
+                      <p className="text-xs text-gray-400 mt-3">* First image will be the cover image. ({images.length}/{MAX_IMAGES})</p>
                 </FormCard>
 
             </div>
@@ -375,7 +493,7 @@ function AddProduct() {
                         <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100 text-center">
                             <p className="text-xs text-emerald-600 font-semibold uppercase tracking-wider">Final GnG Price</p>
                             <p className="text-2xl font-bold text-emerald-700">
-                                ₹ {Product.price || "0"}
+                              ₹ {finalPrice || "0.00"}
                             </p>
                         </div>
 
@@ -415,6 +533,7 @@ function AddProduct() {
                                 />
                                 <Button 
                                     variant="contained" 
+                                  type="button"
                                     className="!bg-orange-500 !min-w-[50px] !p-0" 
                                     onClick={handleOpenCategoryModal}
                                 >
@@ -441,6 +560,7 @@ function AddProduct() {
                                 </FormControl>
                                 <Button 
                                     variant="contained" 
+                                  type="button"
                                     className="!bg-orange-500 !min-w-[50px] !p-0" 
                                     onClick={handleOpenSubCategoryModal}
                                 >
@@ -470,16 +590,29 @@ function AddProduct() {
                     </div>
                 </FormCard>
 
+                {formError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4" role="alert">
+                    {formError}
+                  </div>
+                )}
+
+                {submitMessage && (
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mb-4" role="status">
+                    {submitMessage}
+                  </div>
+                )}
+
                 {/* SUBMIT BUTTON */}
                 <Button
-                    onClick={addproduct}
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                    className="!py-4 !text-lg !font-bold !rounded-2xl !shadow-lg !bg-gradient-to-r from-blue-600 to-purple-600 hover:!from-blue-700 hover:!to-purple-700 hover:!shadow-2xl transition-all transform hover:-translate-y-1"
-                    startIcon={<MdOutlineCloudUpload />}
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                  disabled={isSubmitting}
+                  className="!py-4 !text-lg !font-bold !rounded-2xl !shadow-lg !bg-gradient-to-r from-blue-600 to-purple-600 hover:!from-blue-700 hover:!to-purple-700 hover:!shadow-2xl transition-all transform hover:-translate-y-1 disabled:!opacity-60 disabled:!cursor-not-allowed"
+                  startIcon={<MdOutlineCloudUpload />}
                 >
-                    Publish Product
+                  {isSubmitting ? 'Publishing...' : 'Publish Product'}
                 </Button>
 
             </div>
@@ -488,7 +621,7 @@ function AddProduct() {
         {/* Modals */}
         <Modal open={openAddCategoryModal} onClose={handleCloseCategoryModal}>
             <Box className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-2xl shadow-2xl w-[90%] sm:w-[500px] border-t-8 border-orange-500">
-                <AddCategory onSuccess={handleCloseCategoryModal} />
+            <AddCategory onClose={handleCloseCategoryModal} />
             </Box>
         </Modal>
 
