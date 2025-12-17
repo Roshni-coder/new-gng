@@ -10,7 +10,7 @@ const ShippingInfo = () => {
   <div className="space-y-4">
   <h2 className="font-semibold text-lg mb-1">Shipping Information</h2>
   <p className="mb-2">
-    At GiftNGifts, we strive to deliver your gifts with care and on time. Please review our shipping policies below:
+    At GiftsNGifts, we strive to deliver your gifts with care and on time. Please review our shipping policies below:
   </p>
 
   <h2 className="font-semibold text-lg mb-1">Delivery Areas</h2>

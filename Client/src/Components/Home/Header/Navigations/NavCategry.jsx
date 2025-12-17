@@ -28,28 +28,21 @@ function NavCategory() {
 
   useEffect(() => {
     const fetchSubcategories = async () => {
-     try {
-  const response = await axios.get(
-    `${import.meta.env.VITE_BACKEND_URL}/api/getsubcategories`
-  );
-
-  const data = Array.isArray(response.data)
-    ? response.data
-    : response.data.subcategories || [];
-
-  const grouped = data.reduce((acc, item) => {
-    const catId = item.category?._id;
-    if (!catId) return acc;
-    if (!acc[catId]) acc[catId] = [];
-    acc[catId].push(item);
-    return acc;
-  }, {});
-
-  setSubcategoriesByCategory(grouped);
-} catch (error) {
-  console.error("Error fetching subcategories", error);
-}
-
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/getsubcategories`
+        );
+        const grouped = response.data.reduce((acc, item) => {
+          const catId = item.category?._id;
+          if (!catId) return acc;
+          if (!acc[catId]) acc[catId] = [];
+          acc[catId].push(item);
+          return acc;
+        }, {});
+        setSubcategoriesByCategory(grouped);
+      } catch (error) {
+        console.error("Error fetching subcategories", error);
+      }
     };
     fetchSubcategories();
   }, []);

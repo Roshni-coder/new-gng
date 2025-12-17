@@ -12,7 +12,7 @@ const PrivacyPolicy = () => {
   <strong>Effective Date:</strong> 15th June 2025<br />
   <br /><br />
 
-  At <strong>GiftNGifts</strong>, we are committed to protecting your personal information and respecting your privacy. This Privacy Policy outlines how we collect, use, and protect your information when you access our website or services.
+  At <strong>GiftsNGifts</strong>, we are committed to protecting your personal information and respecting your privacy. This Privacy Policy outlines how we collect, use, and protect your information when you access our website or services.
   <br /><br />
 
   <h2 className="font-semibold text-lg  mb-1">Information We Collect</h2>
@@ -66,7 +66,7 @@ const PrivacyPolicy = () => {
     <li>Unsubscribe from marketing communications</li>
     <li>Request a copy of the personal data we hold</li>
   </ul>
-  For any requests, please contact us at: <a href="mailto:sales@giftNgifts.com" className=" underline">sales@giftNgifts.com</a>
+  For any requests, please contact us at: <a href="mailto:sales@giftsNgifts.com" className=" underline">sales@giftsNgifts.com</a>
   <br /><br />
 
   <h2 className="font-semibold text-lg  mb-1">Children’s Privacy</h2>
@@ -80,8 +80,8 @@ const PrivacyPolicy = () => {
   <h2 className="font-semibold text-lg  mb-1">Contact Us</h2>
   If you have any questions or concerns about this policy, feel free to reach out to us:
   <br />
-  <strong>GiftNGifts - Mega Support Store</strong><br />
-  Email: <a href="mailto:sales@giftNgifts.com" className=" underline">sales@giftNgifts.com</a><br />
+  <strong>GiftsNGifts - Mega Support Store</strong><br />
+  Email: <a href="mailto:sales@giftsNgifts.com" className=" underline">sales@giftsNgifts.com</a><br />
   Phone: <span className=" font-semibold">(+91) 9999-999-999</span>
 </p>
 

@@ -206,70 +206,70 @@ function ProductDetail() {
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-  <section className="pt-4 my-2 lg:pt-6">
-    <div className="container mx-auto px-4 md:px-6 mb-6 bg-white rounded-lg shadow-lg relative">
-      <div className="flex items-center justify-between mb-4 px-2 py-4 border-b border-gray-200">
-        <h3 className="text-[14px] sm:text-2xl font-semibold text-gray-800 capitalize">
-          Related Products
-        </h3>
-      </div>
+        <section className="pt-4 my-2 lg:pt-6">
+          <div className="container mx-auto px-4 md:px-6 mb-6 bg-white rounded-lg shadow-lg relative">
+            <div className="flex items-center justify-between mb-4 px-2 py-4 border-b border-gray-200">
+              <h3 className="text-[14px] sm:text-2xl font-semibold text-gray-800 capitalize">
+                Related Products
+              </h3>
+            </div>
 
-      <Swiper
-        spaceBetween={20}
-        modules={[Navigation]}
-        navigation={{
-          nextEl: `.next-related`,
-          prevEl: `.prev-related`,
-        }}
-        breakpoints={{
-          320: { slidesPerView: 1 },
-          480: { slidesPerView: 2 },
-          768: { slidesPerView: 3 },
-          1280: { slidesPerView: 4 },
-        }}
-        className="mySwiper"
-      >
-        {relatedProducts.map((item) => (
-          <SwiperSlide key={item._id}>
-            <Link to={`/products/${item._id}`}>
-              <div className="bg-white mb-4 rounded overflow-hidden shadow-md hover:shadow-lg transition duration-300">
-                <div className="w-full h-[280px] overflow-hidden">
-                  <img
-                    src={
-                      item.images?.[0]?.url ||
-                      (typeof item.images?.[0] === "string"
-                        ? `${import.meta.env.VITE_BACKEND_URL}/${item.images[0]}`
-                        : "/placeholder.png")
-                    }
-                    alt={item.title}
-                    className="w-full h-full object-contain sm:object-cover hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                <div className="p-3 text-center">
-                  <h3 className="text-gray-700 text-sm sm:text-base truncate">
-                    {item.title}
-                  </h3>
-                  <h2 className="text-gray-900 text-sm sm:text-lg font-semibold mt-1">
-                    ₹{item.price}
-                  </h2>
-                </div>
-              </div>
-            </Link>
-          </SwiperSlide>
-        ))}
-      </Swiper>
-
-      {/* Navigation Arrows */}
-      <div className="prev-related absolute top-1/2 -left-2 z-10 -translate-y-1/2 bg-gray-500/80 text-white w-6 h-10 flex items-center justify-center rounded cursor-pointer shadow">
-        <HiChevronLeft size={20} />
+            <Swiper
+              spaceBetween={20}
+              modules={[Navigation]}
+              navigation={{
+                nextEl: `.next-related`,
+                prevEl: `.prev-related`,
+              }}
+              breakpoints={{
+                320: { slidesPerView: 1 },
+                480: { slidesPerView: 2 },
+                768: { slidesPerView: 3 },
+                1280: { slidesPerView: 4 },
+              }}
+              className="mySwiper"
+            >
+             {relatedProducts.map((item) => (
+  <SwiperSlide key={item._id}>
+    <Link to={`/products/${item._id}`}>
+      <div className="bg-white mb-4 rounded overflow-hidden shadow-md hover:shadow-lg transition duration-300">
+        <div className="w-full h-[280px] overflow-hidden">
+          <img
+            src={
+              item.images?.[0]?.url ||
+              (typeof item.images?.[0] === "string"
+                ? `${import.meta.env.VITE_BACKEND_URL}/${item.images[0]}`
+                : "/placeholder.png")
+            }
+            alt={item.title}
+            className="w-full h-full object-contain sm:object-cover hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+        <div className="p-3 text-center">
+          <h3 className="text-gray-700 text-sm sm:text-base truncate">
+            {item.title}
+          </h3>
+          <h2 className="text-gray-900 text-sm sm:text-lg font-semibold mt-1">
+    {/* Use Math.floor to remove decimals and .toLocaleString() for Indian formatting */}
+    ₹{item.price ? Math.floor(item.price).toLocaleString("en-IN") : "0"}
+  </h2>
+        </div>
       </div>
-      <div className="next-related absolute top-1/2 -right-2 z-10 -translate-y-1/2 bg-gray-500/80 text-white w-6 h-10 flex items-center justify-center rounded cursor-pointer shadow">
-        <HiChevronRight size={20} />
-      </div>
-    </div>
-  </section>
-)}
+    </Link>
+  </SwiperSlide>
+))}
+            </Swiper>
 
+            {/* Navigation Arrows */}
+            <div className="prev-related absolute top-1/2 -left-2 z-10 -translate-y-1/2 bg-gray-500/80 text-white w-6 h-10 flex items-center justify-center rounded cursor-pointer shadow">
+              <HiChevronLeft size={20} />
+            </div>
+            <div className="next-related absolute top-1/2 -right-2 z-10 -translate-y-1/2 bg-gray-500/80 text-white w-6 h-10 flex items-center justify-center rounded cursor-pointer shadow">
+              <HiChevronRight size={20} />
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

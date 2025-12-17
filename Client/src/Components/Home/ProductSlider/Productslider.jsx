@@ -105,8 +105,9 @@ const ProductSlider = () => {
           <div className="p-3 text-center">
             <h3 className="text-gray-700 text-sm sm:text-base truncate">{product.title}</h3>
             <h2 className="text-gray-900 text-sm sm:text-lg font-semibold mt-1">
-              ₹{product.price || "N/A"}
-            </h2>
+  {/* Math.floor ensures no decimal points are shown */}
+  ₹{product.price ? Math.floor(product.price).toLocaleString() : "N/A"}
+</h2>
           </div>
         </div>
       </Link>

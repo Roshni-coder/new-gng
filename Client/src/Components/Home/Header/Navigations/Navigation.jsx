@@ -53,7 +53,7 @@ function Navigation() {
       className="text-[#7d0492] text-center lg:text-right text-[26px] font-[600] sm:!text-[30px]"
       style={{ fontStyle: "italic" }}
     >
-      GiftNGifts
+      GiftsNGifts
     </h1>
   </Link>
 </div>

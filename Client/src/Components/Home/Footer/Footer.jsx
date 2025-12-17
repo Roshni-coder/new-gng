@@ -66,9 +66,9 @@ function Footer() {
           <div className="space-y-4">
             <Link to="/contact-us" className="text-lg font-semibold hover:underline text-[#7d0492] block">Contact Us</Link>
 
-            <p className="text-sm">GiftNGifts - Mega Support Store<br />Union Trade Center, India</p>
+            <p className="text-sm">GiftsNGifts - Mega Support Store<br />Union Trade Center, India</p>
             <Link to="mailto:sales@giftNgifts.com" className="text-sm text-gray-500 hover:underline block">
-              sales@giftNgifts.com
+              
             </Link>
             <p className="text-[#7d0492] font-bold text-xl">‪(+91) 9876-543-210‬</p>
             <div className="flex items-center gap-2">
@@ -167,7 +167,7 @@ function Footer() {
           </div>
 
           {/* Copyright */}
-          <p className="text-xs text-center sm:text-left">© 1994–2025 GiftNGift.com. All rights reserved.</p>
+          <p className="text-xs text-center sm:text-left">© 2025–2026 GiftsNGift.in All rights reserved.</p>
 
           {/* Payment Icons */}
           <img

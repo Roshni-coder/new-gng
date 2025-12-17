@@ -10,7 +10,7 @@ const RefundPolicy = () => {
   <div className="mb-6 text-sm sm:text-base text-gray-800 leading-relaxed space-y-4">
   <div>
     <h2 className="font-semibold text-lg mb-1">Refund Eligibility</h2>
-    If you are not fully satisfied with your purchase from <strong>GiftNGifts</strong>, you may request a refund within <strong>7 days</strong> of receiving the product. To be eligible, the item must be unused, in its original condition and packaging, and include a valid proof of purchase.
+    If you are not fully satisfied with your purchase from <strong>GiftsNGifts</strong>, you may request a refund within <strong>7 days</strong> of receiving the product. To be eligible, the item must be unused, in its original condition and packaging, and include a valid proof of purchase.
   </div>
 
   <div>
@@ -30,7 +30,7 @@ const RefundPolicy = () => {
 
   <div>
     <h2 className="font-semibold text-lg mb-1">How to Request a Refund</h2>
-    To initiate a refund, please email us at <a href="mailto:support@giftNgifts.com" className="underline">support@giftNgifts.com</a> with your order number, reason for return, and relevant photos if applicable.
+    To initiate a refund, please email us at <a href="mailto:support@giftsNgifts.com" className="underline">support@giftsNgifts.com</a> with your order number, reason for return, and relevant photos if applicable.
   </div>
 </div>
 

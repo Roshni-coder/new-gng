@@ -10,7 +10,7 @@ const TermsOfUse = () => {
   <div className="mb-6 text-sm sm:text-base text-gray-800 leading-relaxed space-y-4">
   <div>
     <h2 className="font-semibold text-lg mb-1">General Disclaimer</h2>
-    The information provided on the <strong>GiftNGifts</strong> website is for general informational purposes only. While we strive to keep the content accurate and up to date, we make no warranties or representations regarding the completeness, reliability, or accuracy of any information on the site.
+    The information provided on the <strong>GiftsNGifts</strong> website is for general informational purposes only. While we strive to keep the content accurate and up to date, we make no warranties or representations regarding the completeness, reliability, or accuracy of any information on the site.
   </div>
 
   <div>
@@ -20,7 +20,7 @@ const TermsOfUse = () => {
 
   <div>
     <h2 className="font-semibold text-lg mb-1">Limitation of Liability</h2>
-    <strong>GiftNGifts</strong> shall not be held liable for any direct, indirect, incidental, or consequential damages arising from the use of our website, products, or reliance on any content presented.
+    <strong>GiftsNGifts</strong> shall not be held liable for any direct, indirect, incidental, or consequential damages arising from the use of our website, products, or reliance on any content presented.
   </div>
 
   <div>
